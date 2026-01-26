@@ -1,1 +1,89 @@
 
+using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    public float forwardSpeed = 10f;
+    public float laneDistance = 4f; // distance between lanes
+    public float laneChangeSpeed = 10f;
+
+    private int currentLane = 1; // 0-left, 1-middle, 2-right
+    private Vector3 targetPosition;
+
+    void Start()
+    {
+        targetPosition = transform.position;
+    }
+
+    void Update()
+    {
+        // Move forward constantly
+        transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
+
+        // Input for lane change
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+            MoveLane(false);
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+            MoveLane(true);
+
+        // Smoothly move to lane
+        Vector3 desiredPosition = new Vector3((currentLane - 1) * laneDistance, transform.position.y, transform.position.z);
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, laneChangeSpeed * Time.deltaTime);
+    }
+
+    void MoveLane(bool goingRight)
+    {
+        currentLane += goingRight ? 1 : -1;
+        currentLane = Mathf.Clamp(currentLane, 0, 2);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Obstacle"))
+        {
+            Debug.Log("Game Over!");
+            // Here you can restart game or show game over UI
+        }
+    }
+}
+using UnityEngine;
+
+public class Spawner : MonoBehaviour
+{
+    public GameObject[] obstacles;
+    public float spawnDistance = 50f;
+    public float spawnInterval = 5f;
+    private float nextSpawnZ;
+
+    void Start()
+    {
+        nextSpawnZ = transform.position.z;
+    }
+
+    void Update()
+    {
+        if (transform.position.z + spawnDistance > nextSpawnZ)
+        {
+            SpawnObstacle();
+            nextSpawnZ += spawnInterval;
+        }
+    }
+
+    void SpawnObstacle()
+    {
+        int lane = Random.Range(0, 3);
+        Vector3 spawnPos = new Vector3((lane - 1) * 4f, 0, nextSpawnZ);
+        int obsIndex = Random.Range(0, obstacles.Length);
+        Instantiate(obstacles[obsIndex], spawnPos, Quaternion.identity);
+    }
+}
+public class CameraFollow : MonoBehaviour
+{
+    public Transform target;
+    public Vector3 offset;
+
+    void LateUpdate()
+    {
+        transform.position = target.position + offset;
+    }
+}
