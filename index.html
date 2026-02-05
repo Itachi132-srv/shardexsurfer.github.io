@@ -1,118 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neon Ball Breaker</title>
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+body{background:black;overflow:hidden;color:white;touch-action:none;}
+canvas{display:block;margin:auto;background:transparent;}
+#logo{position:fixed;top:10px;right:10px;width:50px;height:50px;border:2px solid #0ff;display:flex;align-items:center;justify-content:center;color:#0ff;font-size:10px;z-index:10;} 
 
-body{
-  background:black;
-  overflow:hidden;
-  color:white;
-}
+/* Top score bar */
+#topBar{position:fixed;top:10px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:bold;z-index:10;}
 
-/* animated background */
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:
-    radial-gradient(circle at 20% 20%, #0ff3, transparent 40%),
-    radial-gradient(circle at 80% 80%, #f0f3, transparent 40%);
-  animation:bgMove 8s linear infinite;
-}
-@keyframes bgMove{
-  0%{transform:translate(0,0)}
-  50%{transform:translate(-40px,40px)}
-  100%{transform:translate(0,0)}
-}
-
-#menu, #defeat{
-  position:fixed;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  gap:20px;
-  background:rgba(0,0,0,.6);
-}
-
+/* Menu */
+#menu,#defeat{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;background:rgba(0,0,0,.6);z-index:20;}
 .hidden{display:none;}
-
-h1{
-  font-size:40px;
-  font-weight:900;
-  text-transform:uppercase;
-  animation:neonTitle 2s infinite alternate;
-}
-@keyframes neonTitle{
-  0%{color:#0ff;text-shadow:0 0 10px #0ff}
-  50%{color:#f0f;text-shadow:0 0 10px #f0f}
-  100%{color:#0f0;text-shadow:0 0 10px #0f0}
-}
-
-.btn{
-  padding:12px 30px;
-  font-size:18px;
-  border:none;
-  cursor:pointer;
-  border-radius:6px;
-  color:black;
-  font-weight:bold;
-}
-.easy{background:#00ff7f;}
-.medium{background:#ffd700;}
-.hard{background:#ff4040;}
-
-canvas{
-  display:block;
-  margin:auto;
-  background:transparent;
-}
-
-#topBar{
-  position:fixed;
-  top:10px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:18px;
-  font-weight:bold;
-}
-
-#logoBox{
-  position:fixed;
-  top:10px;
-  right:10px;
-  width:50px;
-  height:50px;
-  border:2px solid #0ff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:10px;
-  color:#0ff;
-}
+h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2s infinite alternate;text-align:center;}
+@keyframes neonTitle{0%{color:#0ff;text-shadow:0 0 15px #0ff;}50%{color:#f0f;text-shadow:0 0 15px #f0f;}100%{color:#0f0;text-shadow:0 0 15px #0f0;}}
+.btn{padding:12px 30px;font-size:18px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;color:black;}
+.easy{background:#00ff7f;} .medium{background:#ffd700;} .hard{background:#ff4040;}
 </style>
 </head>
-
 <body>
 
-<div id="logoBox">LOGO</div>
-
+<div id="logo.png">LOGO</div>
 <div id="topBar">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
 
 <canvas id="game"></canvas>
 
+<!-- Menu -->
 <div id="menu">
-  <h1>Neon Ball Breaker</h1>
+  <h1>NEON BALL BREAKER</h1>
   <button class="btn easy" onclick="startGame(2)">Easy</button>
   <button class="btn medium" onclick="startGame(3.5)">Medium</button>
   <button class="btn hard" onclick="startGame(5)">Hard</button>
 </div>
 
+<!-- Defeat -->
 <div id="defeat" class="hidden">
   <h1>Defeat</h1>
   <button class="btn medium" onclick="restart()">Restart</button>
@@ -120,135 +45,80 @@ canvas{
 </div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 let w,h;
-function resize(){
-  w = canvas.width = Math.min(innerWidth,400);
-  h = canvas.height = Math.min(innerHeight,600);
-}
-resize();
-addEventListener("resize",resize);
+function resize(){w=canvas.width=innerWidth;h=canvas.height=innerHeight;}
+resize();window.addEventListener("resize",resize);
 
-let block, balls, speed, running=false;
+// Game state
+let paddle,balls,speed,running=false;
 let score=0;
-let best = localStorage.getItem("nbb_best")||0;
-best = Number(best);
-document.getElementById("best").textContent=best;
+let best=localStorage.getItem("nbb_best")||0;
+best=Number(best);document.getElementById("best").textContent=best;
 
-let touchX=null;
-
+// Start game
 function startGame(sp){
-  speed = sp;
-  score = 0;
-  document.getElementById("score").textContent=0;
-
-  block = {x:w/2-40,y:h-30,w:80,h:12,flash:0};
-  balls = [];
-
+  speed=sp;score=0;document.getElementById("score").textContent=0;
+  paddle={x:w/2-40,y:h-30,w:80,h:12,flash:0};
+  balls=[];
   running=true;
   document.getElementById("menu").classList.add("hidden");
   document.getElementById("defeat").classList.add("hidden");
-
-  spawnBall();
-  requestAnimationFrame(loop);
+  spawnBall();requestAnimationFrame(loop);
 }
 
+// Buttons
+function restart(){startGame(speed);}
+function goMenu(){document.getElementById("menu").classList.remove("hidden");document.getElementById("defeat").classList.add("hidden");}
+
+// Controls
+window.addEventListener("mousemove",e=>{
+  if(running){paddle.x=e.clientX-paddle.w/2;paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
+});
+window.addEventListener("touchmove",e=>{
+  if(running){paddle.x=e.touches[0].clientX-paddle.w/2;paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
+},{passive:true});
+
+// Balls
 function spawnBall(){
-  balls.push({
-    x:Math.random()*(w-30)+15,
-    y:-20,
-    r:10,
-    c:`hsl(${Math.random()*360},100%,60%)`
-  });
+  balls.push({x:Math.random()*(w-30)+15,y:-20,r:10,c:`hsl(${Math.random()*360},100%,60%)`});
 }
 
-function loop(){
-  if(!running) return;
-
-  ctx.clearRect(0,0,w,h);
-
-  // block
-  ctx.fillStyle = block.flash>0 ? "#00ff00" : "#0ff";
-  ctx.fillRect(block.x,block.y,block.w,block.h);
-  if(block.flash>0) block.flash--;
-
-  // balls
-  for(let i=balls.length-1;i>=0;i--){
-    let b=balls[i];
-    b.y+=speed;
-
-    ctx.beginPath();
-    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-    ctx.fillStyle=b.c;
-    ctx.shadowBlur=15;
-    ctx.shadowColor=b.c;
-    ctx.fill();
-    ctx.shadowBlur=0;
-
-    // collision
-    if(
-      b.y+b.r>block.y &&
-      b.x>b.x &&
-      b.x>block.x &&
-      b.x<block.x+block.w &&
-      b.y+b.r<block.y+block.h
-    ){
-      balls.splice(i,1);
-      score+=10;
-      document.getElementById("score").textContent=score;
-      block.flash=5;
-      spawnBall();
-      continue;
-    }
-
-    // miss
-    if(b.y-b.r>h){
-      gameOver();
-      return;
-    }
-  }
-
-  if(balls.length<3) spawnBall();
-
-  requestAnimationFrame(loop);
-}
-
+// End game
 function gameOver(){
   running=false;
-  if(score>best){
-    best=score;
-    localStorage.setItem("nbb_best",best);
-    document.getElementById("best").textContent=best;
-  }
+  if(score>best){best=score;localStorage.setItem("nbb_best",best);document.getElementById("best").textContent=best;}
   document.getElementById("defeat").classList.remove("hidden");
 }
 
-function restart(){
-  startGame(speed);
-}
-function goMenu(){
-  document.getElementById("menu").classList.remove("hidden");
-  document.getElementById("defeat").classList.add("hidden");
-}
-
-// controls
-addEventListener("mousemove",e=>{
-  if(running){
-    block.x = e.clientX - canvas.getBoundingClientRect().left - block.w/2;
-    block.x = Math.max(0,Math.min(w-block.w,block.x));
+// Loop
+function loop(){
+  if(!running) return;
+  ctx.clearRect(0,0,w,h);
+  
+  // Paddle
+  ctx.fillStyle=paddle.flash>0?"#00ff00":"#0ff";
+  ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
+  if(paddle.flash>0)paddle.flash--;
+  
+  // Balls
+  for(let i=balls.length-1;i>=0;i--){
+    let b=balls[i];b.y+=speed;
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.c;ctx.shadowBlur=15;ctx.shadowColor=b.c;ctx.fill();ctx.shadowBlur=0;
+    
+    // Collision
+    if(b.y+b.r>paddle.y && b.x>paddle.x && b.x<paddle.x+paddle.w){
+      balls.splice(i,1);score+=10;document.getElementById("score").textContent=score;paddle.flash=5;spawnBall();continue;
+    }
+    
+    // Miss
+    if(b.y-b.r>h){gameOver();return;}
   }
-});
-
-addEventListener("touchmove",e=>{
-  if(running){
-    let t=e.touches[0];
-    block.x = t.clientX - canvas.getBoundingClientRect().left - block.w/2;
-    block.x = Math.max(0,Math.min(w-block.w,block.x));
-  }
-},{passive:true});
+  
+  if(balls.length<3)spawnBall();
+  requestAnimationFrame(loop);
+}
 </script>
-
 </body>
 </html>
