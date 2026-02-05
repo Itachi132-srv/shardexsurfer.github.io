@@ -1,292 +1,254 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>Neon Ball Breaker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Poppins:wght@500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
 
-html,body{
- margin:0;
- padding:0;
- overflow:hidden;
- background:#000;
- font-family:'Poppins',sans-serif;
- touch-action:none;
+body{
+  background:black;
+  overflow:hidden;
+  color:white;
 }
 
-/* MENU */
-#menu{
- position:fixed;
- inset:0;
- display:flex;
- flex-direction:column;
- justify-content:center;
- align-items:center;
- background:black;
- z-index:10;
+/* animated background */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 20% 20%, #0ff3, transparent 40%),
+    radial-gradient(circle at 80% 80%, #f0f3, transparent 40%);
+  animation:bgMove 8s linear infinite;
 }
-#title{
- font-family:'Orbitron',sans-serif;
- font-size:clamp(28px,6vw,56px);
- margin-bottom:25px;
- animation:neon 4s infinite;
+@keyframes bgMove{
+  0%{transform:translate(0,0)}
+  50%{transform:translate(-40px,40px)}
+  100%{transform:translate(0,0)}
 }
-@keyframes neon{
- 0%{color:#0ff;text-shadow:0 0 15px #0ff}
- 50%{color:#f0f;text-shadow:0 0 15px #f0f}
- 100%{color:#0ff;text-shadow:0 0 15px #0ff}
-}
-.menuBtn{
- width:220px;
- max-width:80vw;
- padding:14px;
- margin:10px;
- font-size:18px;
- border:none;
- border-radius:12px;
- font-weight:600;
- cursor:pointer;
-}
-#easy{background:#00ff88}
-#medium{background:#ffee00}
-#hard{background:#ff0033;color:white}
 
-/* UI */
-#ui,#best{
- position:fixed;
- top:10px;
- color:white;
- font-size:14px;
- display:none;
- z-index:5;
+#menu, #defeat{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:20px;
+  background:rgba(0,0,0,.6);
 }
-#ui{left:10px}
-#best{right:10px}
 
-canvas{display:none}
+.hidden{display:none;}
 
-/* DEFEAT */
-#defeat{
- position:fixed;
- inset:0;
- display:none;
- flex-direction:column;
- justify-content:center;
- align-items:center;
- background:black;
- z-index:20;
+h1{
+  font-size:40px;
+  font-weight:900;
+  text-transform:uppercase;
+  animation:neonTitle 2s infinite alternate;
 }
-#defeat h1{
- font-family:'Orbitron',sans-serif;
- color:red;
- font-size:clamp(32px,6vw,60px);
- margin-bottom:20px;
+@keyframes neonTitle{
+  0%{color:#0ff;text-shadow:0 0 10px #0ff}
+  50%{color:#f0f;text-shadow:0 0 10px #f0f}
+  100%{color:#0f0;text-shadow:0 0 10px #0f0}
 }
-.defeatBtn{
- width:200px;
- padding:12px;
- margin:8px;
- font-size:16px;
- border:none;
- border-radius:10px;
- cursor:pointer;
- font-weight:600;
+
+.btn{
+  padding:12px 30px;
+  font-size:18px;
+  border:none;
+  cursor:pointer;
+  border-radius:6px;
+  color:black;
+  font-weight:bold;
 }
-#restartBtn{background:#00ff88}
-#menuBtn{background:#00ccff}
+.easy{background:#00ff7f;}
+.medium{background:#ffd700;}
+.hard{background:#ff4040;}
+
+canvas{
+  display:block;
+  margin:auto;
+  background:transparent;
+}
+
+#topBar{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:18px;
+  font-weight:bold;
+}
+
+#logoBox{
+  position:fixed;
+  top:10px;
+  right:10px;
+  width:50px;
+  height:50px;
+  border:2px solid #0ff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  color:#0ff;
+}
 </style>
 </head>
+
 <body>
 
-<!-- MENU -->
-<div id="menu">
- <div id="title">NEON BALL BREAKER</div>
- <button class="menuBtn" id="easy">EASY</button>
- <button class="menuBtn" id="medium">MEDIUM</button>
- <button class="menuBtn" id="hard">HARD</button>
-</div>
+<div id="logoBox">LOGO</div>
 
-<!-- UI -->
-<div id="ui">Score: <span id="score">0</span></div>
-<div id="best">Best: <span id="bestScore">0</span></div>
-
-<!-- DEFEAT -->
-<div id="defeat">
- <h1>DEFEAT</h1>
- <button class="defeatBtn" id="restartBtn">🔁 Restart</button>
- <button class="defeatBtn" id="menuBtn">🏠 Menu</button>
-</div>
+<div id="topBar">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
 
 <canvas id="game"></canvas>
 
+<div id="menu">
+  <h1>Neon Ball Breaker</h1>
+  <button class="btn easy" onclick="startGame(2)">Easy</button>
+  <button class="btn medium" onclick="startGame(3.5)">Medium</button>
+  <button class="btn hard" onclick="startGame(5)">Hard</button>
+</div>
+
+<div id="defeat" class="hidden">
+  <h1>Defeat</h1>
+  <button class="btn medium" onclick="restart()">Restart</button>
+  <button class="btn easy" onclick="goMenu()">Menu</button>
+</div>
+
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const menu=document.getElementById("menu");
-const defeat=document.getElementById("defeat");
-const ui=document.getElementById("ui");
-const bestDiv=document.getElementById("best");
-const scoreSpan=document.getElementById("score");
-const bestSpan=document.getElementById("bestScore");
-
+let w,h;
 function resize(){
- canvas.width=innerWidth;
- canvas.height=innerHeight;
+  w = canvas.width = Math.min(innerWidth,400);
+  h = canvas.height = Math.min(innerHeight,600);
 }
-resize(); addEventListener("resize",resize);
+resize();
+addEventListener("resize",resize);
 
-// GAME STATE
-let paddle,balls,particles,score,settings;
-let running=false;
+let block, balls, speed, running=false;
+let score=0;
+let best = localStorage.getItem("nbb_best")||0;
+best = Number(best);
+document.getElementById("best").textContent=best;
 
-// BEST SCORE
-let best=localStorage.getItem("NEON_BEST")||0;
-bestSpan.textContent=best;
+let touchX=null;
 
-// START GAME
-function startGame(mode){
- settings={
-  easy:{speed:2.5,gap:90},
-  medium:{speed:4,gap:65},
-  hard:{speed:5.5,gap:45}
- }[mode];
+function startGame(sp){
+  speed = sp;
+  score = 0;
+  document.getElementById("score").textContent=0;
 
- score=0;
- scoreSpan.textContent=0;
- balls=[];
- particles=[];
- running=true;
+  block = {x:w/2-40,y:h-30,w:80,h:12,flash:0};
+  balls = [];
 
- paddle={
-  w:canvas.width*0.3,
-  h:14,
-  x:canvas.width/2,
-  y:canvas.height-50,
-  glow:0
- };
+  running=true;
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("defeat").classList.add("hidden");
 
- menu.style.display="none";
- defeat.style.display="none";
- canvas.style.display="block";
- ui.style.display="block";
- bestDiv.style.display="block";
-
- requestAnimationFrame(loop);
+  spawnBall();
+  requestAnimationFrame(loop);
 }
 
-// BUTTONS
-easy.onclick=()=>startGame("easy");
-medium.onclick=()=>startGame("medium");
-hard.onclick=()=>startGame("hard");
-
-restartBtn.onclick=()=>startGame("medium");
-menuBtn.onclick=()=>{
- defeat.style.display="none";
- menu.style.display="flex";
-};
-
-// PC CONTROLS
-let left=false,right=false;
-addEventListener("keydown",e=>{
- if(e.key==="ArrowLeft") left=true;
- if(e.key==="ArrowRight") right=true;
-});
-addEventListener("keyup",e=>{
- if(e.key==="ArrowLeft") left=false;
- if(e.key==="ArrowRight") right=false;
-});
-
-// MOBILE CONTROL (FULL FIX)
-canvas.addEventListener("touchstart",e=>{
- e.preventDefault();
- let x=e.touches[0].clientX;
- paddle.x=x;
-},{passive:false});
-
-canvas.addEventListener("touchmove",e=>{
- e.preventDefault();
- let x=e.touches[0].clientX;
- paddle.x=x;
-},{passive:false});
-
-// BALL SPAWN
 function spawnBall(){
- let x;
- do{x=Math.random()*canvas.width}
- while(balls.some(b=>Math.abs(b.x-x)<settings.gap));
-
- balls.push({
-  x,y:-20,r:12,
-  s:settings.speed,
-  c:`hsl(${Math.random()*360},100%,60%)`
- });
+  balls.push({
+    x:Math.random()*(w-30)+15,
+    y:-20,
+    r:10,
+    c:`hsl(${Math.random()*360},100%,60%)`
+  });
 }
 
-// END GAME
-function endGame(){
- running=false;
- if(score>best){
-  best=score;
-  localStorage.setItem("NEON_BEST",best);
-  bestSpan.textContent=best;
- }
- canvas.style.display="none";
- ui.style.display="none";
- bestDiv.style.display="none";
- defeat.style.display="flex";
-}
-
-// MAIN LOOP
 function loop(){
- if(!running) return;
+  if(!running) return;
 
- ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.clearRect(0,0,w,h);
 
- // paddle
- if(left) paddle.x-=8;
- if(right) paddle.x+=8;
- paddle.x=Math.max(paddle.w/2,Math.min(canvas.width-paddle.w/2,paddle.x));
+  // block
+  ctx.fillStyle = block.flash>0 ? "#00ff00" : "#0ff";
+  ctx.fillRect(block.x,block.y,block.w,block.h);
+  if(block.flash>0) block.flash--;
 
- ctx.shadowBlur=paddle.glow;
- ctx.shadowColor="#00ff88";
- ctx.fillStyle="#00ffff";
- ctx.fillRect(paddle.x-paddle.w/2,paddle.y,paddle.w,paddle.h);
- ctx.shadowBlur=0;
- paddle.glow=Math.max(0,paddle.glow-1);
+  // balls
+  for(let i=balls.length-1;i>=0;i--){
+    let b=balls[i];
+    b.y+=speed;
 
- // balls
- for(let i=balls.length-1;i>=0;i--){
-  let b=balls[i];
-  b.y+=b.s;
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fillStyle=b.c;
+    ctx.shadowBlur=15;
+    ctx.shadowColor=b.c;
+    ctx.fill();
+    ctx.shadowBlur=0;
 
-  ctx.beginPath();
-  ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-  ctx.fillStyle=b.c;
-  ctx.shadowBlur=20;
-  ctx.shadowColor=b.c;
-  ctx.fill();
-  ctx.shadowBlur=0;
+    // collision
+    if(
+      b.y+b.r>block.y &&
+      b.x>b.x &&
+      b.x>block.x &&
+      b.x<block.x+block.w &&
+      b.y+b.r<block.y+block.h
+    ){
+      balls.splice(i,1);
+      score+=10;
+      document.getElementById("score").textContent=score;
+      block.flash=5;
+      spawnBall();
+      continue;
+    }
 
-  if(b.y+b.r>=paddle.y && b.x>paddle.x-paddle.w/2 && b.x<paddle.x+paddle.w/2){
-   balls.splice(i,1);
-   score+=10;
-   scoreSpan.textContent=score;
-   paddle.glow=20;
-   continue;
+    // miss
+    if(b.y-b.r>h){
+      gameOver();
+      return;
+    }
   }
 
-  if(b.y-b.r>canvas.height){
-   endGame();
-   return;
-  }
- }
+  if(balls.length<3) spawnBall();
 
- if(Math.random()<0.035) spawnBall();
-
- requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
 }
+
+function gameOver(){
+  running=false;
+  if(score>best){
+    best=score;
+    localStorage.setItem("nbb_best",best);
+    document.getElementById("best").textContent=best;
+  }
+  document.getElementById("defeat").classList.remove("hidden");
+}
+
+function restart(){
+  startGame(speed);
+}
+function goMenu(){
+  document.getElementById("menu").classList.remove("hidden");
+  document.getElementById("defeat").classList.add("hidden");
+}
+
+// controls
+addEventListener("mousemove",e=>{
+  if(running){
+    block.x = e.clientX - canvas.getBoundingClientRect().left - block.w/2;
+    block.x = Math.max(0,Math.min(w-block.w,block.x));
+  }
+});
+
+addEventListener("touchmove",e=>{
+  if(running){
+    let t=e.touches[0];
+    block.x = t.clientX - canvas.getBoundingClientRect().left - block.w/2;
+    block.x = Math.max(0,Math.min(w-block.w,block.x));
+  }
+},{passive:true});
 </script>
+
 </body>
 </html>
