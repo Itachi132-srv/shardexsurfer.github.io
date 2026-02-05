@@ -5,38 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html,body{
- margin:0;
- padding:0;
- overflow:hidden;
- background:black;
- font-family:Arial, sans-serif;
+ margin:0; padding:0; overflow:hidden;
+ background:black; font-family:Arial;
 }
-canvas{
- display:none;
-}
-#menu,#defeat{
+canvas{display:none}
+
+/* MENU */
+#menu{
  position:absolute;
- width:100%;
- height:100%;
+ width:100%; height:100%;
  display:flex;
  flex-direction:column;
  justify-content:center;
  align-items:center;
  background:black;
+ overflow:hidden;
 }
+.menu-bg span{
+ position:absolute;
+ width:4px; height:4px;
+ background:#0ff;
+ animation: move 6s linear infinite;
+}
+@keyframes move{
+ from{transform:translateY(-100vh)}
+ to{transform:translateY(100vh)}
+}
+
+/* TITLE */
+#title{
+ font-size:42px;
+ margin-bottom:30px;
+ animation: neon 3s infinite;
+}
+@keyframes neon{
+ 0%{color:#0ff;text-shadow:0 0 20px #0ff}
+ 33%{color:#f0f;text-shadow:0 0 20px #f0f}
+ 66%{color:#0f0;text-shadow:0 0 20px #0f0}
+ 100%{color:#0ff;text-shadow:0 0 20px #0ff}
+}
+
+/* BUTTONS */
 button{
- padding:15px 35px;
+ padding:15px 40px;
  margin:10px;
  font-size:22px;
  border:none;
- border-radius:8px;
- color:white;
+ border-radius:10px;
  cursor:pointer;
+ box-shadow:0 0 20px;
 }
-#easy{background:#00c853}
-#medium{background:#ffeb3b;color:black}
-#hard{background:#d50000}
+#easy{background:#00ff88;box-shadow:0 0 20px #00ff88}
+#medium{background:#ffee00;box-shadow:0 0 20px #ffee00}
+#hard{background:#ff0033;box-shadow:0 0 20px #ff0033}
 
+/* UI */
 #ui,#best{
  position:absolute;
  top:10px;
@@ -46,20 +69,47 @@ button{
 }
 #ui{left:10px}
 #best{right:10px}
+
+/* LOGO */
+#logo{
+ position:absolute;
+ top:10px; left:10px;
+ width:50px; height:50px;
+ border:2px dashed #0ff;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ color:#0ff;
+ font-size:10px;
+ z-index:10;
+}
+
+/* DEFEAT */
+#defeat{
+ position:absolute;
+ width:100%; height:100%;
+ display:none;
+ justify-content:center;
+ align-items:center;
+ background:black;
+ color:red;
+ font-size:40px;
+}
 </style>
 </head>
 <body>
 
+<div id="logo">LOGO</div>
+
 <div id="menu">
- <h1 style="color:white">Select Difficulty</h1>
+ <div class="menu-bg"></div>
+ <div id="title">NEON BALL BREAKER</div>
  <button id="easy">Easy</button>
  <button id="medium">Medium</button>
  <button id="hard">Hard</button>
 </div>
 
-<div id="defeat" style="display:none">
- <h1 style="color:red;font-size:40px">DEFEAT</h1>
-</div>
+<div id="defeat">DEFEAT</div>
 
 <div id="ui">Score: <span id="score">0</span></div>
 <div id="best">Best: <span id="bestScore">0</span></div>
@@ -67,177 +117,110 @@ button{
 <canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const menu=document.getElementById("menu");
+const defeat=document.getElementById("defeat");
+const ui=document.getElementById("ui");
+const bestDiv=document.getElementById("best");
+const scoreSpan=document.getElementById("score");
+const bestSpan=document.getElementById("bestScore");
 
-const menu = document.getElementById("menu");
-const defeat = document.getElementById("defeat");
-const ui = document.getElementById("ui");
-const bestDiv = document.getElementById("best");
-const scoreSpan = document.getElementById("score");
-const bestScoreSpan = document.getElementById("bestScore");
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+resize();addEventListener("resize",resize);
 
-function resize(){
- canvas.width = innerWidth;
- canvas.height = innerHeight;
+// animated bg dots
+for(let i=0;i<80;i++){
+ let s=document.createElement("span");
+ s.style.left=Math.random()*100+"vw";
+ s.style.animationDuration=3+Math.random()*5+"s";
+ menu.querySelector(".menu-bg").appendChild(s);
 }
-resize();
-addEventListener("resize", resize);
 
-let paddle, balls, particles;
-let score = 0;
-let best = localStorage.getItem("bestScore") || 0;
-bestScoreSpan.innerText = best;
+let best=localStorage.getItem("BEST_SCORE")||0;
+bestSpan.innerText=best;
 
-let gameOver = false;
-let settings = {};
+let paddle,balls,particles,settings,score,gameOver=false;
 
 function startGame(diff){
- settings = {
-  easy:   {speed:2.5, gap:90},
-  medium: {speed:4,   gap:65},
-  hard:   {speed:5.5, gap:45}
+ settings={
+  easy:{speed:2.5,gap:90},
+  medium:{speed:4,gap:65},
+  hard:{speed:5.5,gap:45}
  }[diff];
 
- score = 0;
- scoreSpan.innerText = score;
- balls = [];
- particles = [];
- gameOver = false;
+ score=0; scoreSpan.innerText=0;
+ balls=[]; particles=[]; gameOver=false;
 
- paddle = {
-  w: canvas.width * 0.25,
-  h: 14,
-  x: canvas.width / 2,
-  y: canvas.height - 40,
-  color: "#00ffff"
- };
+ paddle={w:canvas.width*0.25,h:14,x:canvas.width/2,y:canvas.height-40,color:"#0ff"};
 
- menu.style.display = "none";
- defeat.style.display = "none";
- canvas.style.display = "block";
- ui.style.display = "block";
- bestDiv.style.display = "block";
-
+ menu.style.display="none";
+ canvas.style.display="block";
+ ui.style.display="block";
+ bestDiv.style.display="block";
  requestAnimationFrame(loop);
 }
 
-document.getElementById("easy").onclick = ()=>startGame("easy");
-document.getElementById("medium").onclick = ()=>startGame("medium");
-document.getElementById("hard").onclick = ()=>startGame("hard");
+easy.onclick=()=>startGame("easy");
+medium.onclick=()=>startGame("medium");
+hard.onclick=()=>startGame("hard");
 
 // controls
 let left=false,right=false;
 addEventListener("keydown",e=>{
- if(e.key==="ArrowLeft") left=true;
- if(e.key==="ArrowRight") right=true;
+ if(e.key==="ArrowLeft")left=true;
+ if(e.key==="ArrowRight")right=true;
 });
 addEventListener("keyup",e=>{
- if(e.key==="ArrowLeft") left=false;
- if(e.key==="ArrowRight") right=false;
-});
-
-// mobile
-let tx=null;
-canvas.addEventListener("touchstart",e=>{
- tx = e.touches[0].clientX;
-});
-canvas.addEventListener("touchmove",e=>{
- let dx = e.touches[0].clientX - tx;
- paddle.x += dx;
- tx = e.touches[0].clientX;
+ if(e.key==="ArrowLeft")left=false;
+ if(e.key==="ArrowRight")right=false;
 });
 
 function spawnBall(){
  let x;
- do{
-  x = Math.random() * canvas.width;
- }while(balls.some(b => Math.abs(b.x - x) < settings.gap));
-
- balls.push({
-  x: x,
-  y: -20,
-  r: 10 + Math.random()*6,
-  speed: settings.speed + Math.random(),
-  color: `hsl(${Math.random()*360},100%,60%)`
- });
-}
-
-function explode(x,y){
- for(let i=0;i<15;i++){
-  particles.push({
-   x,y,
-   vx:(Math.random()-0.5)*6,
-   vy:(Math.random()-0.5)*6,
-   life:25
-  });
- }
+ do{x=Math.random()*canvas.width}
+ while(balls.some(b=>Math.abs(b.x-x)<settings.gap));
+ balls.push({x,y:-20,r:12,s:settings.speed+Math.random(),c:`hsl(${Math.random()*360},100%,60%)`});
 }
 
 function endGame(){
- gameOver = true;
- if(score > best){
-  best = score;
-  localStorage.setItem("bestScore", best);
+ gameOver=true;
+ if(score>best){
+  best=score;
+  localStorage.setItem("BEST_SCORE",best);
+  bestSpan.innerText=best;
  }
  canvas.style.display="none";
  ui.style.display="none";
  bestDiv.style.display="none";
  defeat.style.display="flex";
-
- setTimeout(()=>{
-  defeat.style.display="none";
-  menu.style.display="flex";
- },2000);
+ setTimeout(()=>{defeat.style.display="none";menu.style.display="flex"},2000);
 }
 
 function loop(){
- if(gameOver) return;
-
+ if(gameOver)return;
  ctx.fillStyle="black";
  ctx.fillRect(0,0,canvas.width,canvas.height);
 
- if(left) paddle.x -= 8;
- if(right) paddle.x += 8;
- paddle.x = Math.max(paddle.w/2, Math.min(canvas.width-paddle.w/2, paddle.x));
+ if(left)paddle.x-=8;
+ if(right)paddle.x+=8;
+ paddle.x=Math.max(paddle.w/2,Math.min(canvas.width-paddle.w/2,paddle.x));
 
- ctx.fillStyle = paddle.color;
- ctx.fillRect(paddle.x-paddle.w/2, paddle.y, paddle.w, paddle.h);
+ ctx.fillStyle=paddle.color;
+ ctx.fillRect(paddle.x-paddle.w/2,paddle.y,paddle.w,paddle.h);
 
  balls.forEach((b,i)=>{
-  b.y += b.speed;
-  ctx.beginPath();
-  ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-  ctx.fillStyle=b.color;
-  ctx.fill();
-
-  if(
-   b.y+b.r >= paddle.y &&
-   b.x > paddle.x-paddle.w/2 &&
-   b.x < paddle.x+paddle.w/2
-  ){
-   explode(b.x,b.y);
-   balls.splice(i,1);
-   score += 10;
-   scoreSpan.innerText = score;
-   paddle.color="#00ff00";
-   setTimeout(()=>paddle.color="#00ffff",50);
+  b.y+=b.s;
+  ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  ctx.fillStyle=b.c;ctx.fill();
+  if(b.y+b.r>paddle.y&&b.x>paddle.x-paddle.w/2&&b.x<paddle.x+paddle.w/2){
+   balls.splice(i,1);score+=10;scoreSpan.innerText=score;
+   paddle.color="#0f0";setTimeout(()=>paddle.color="#0ff",50);
   }
-
-  if(b.y-b.r > canvas.height){
-   endGame();
-  }
+  if(b.y-b.r>canvas.height)endGame();
  });
 
- particles.forEach((p,i)=>{
-  ctx.fillStyle="white";
-  ctx.fillRect(p.x,p.y,3,3);
-  p.x+=p.vx; p.y+=p.vy; p.life--;
-  if(p.life<=0) particles.splice(i,1);
- });
-
- if(Math.random() < 0.035) spawnBall();
-
+ if(Math.random()<0.035)spawnBall();
  requestAnimationFrame(loop);
 }
 </script>
