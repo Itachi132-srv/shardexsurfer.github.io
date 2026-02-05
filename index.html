@@ -19,16 +19,46 @@ canvas{display:block;margin:auto;background:transparent;}
 /* Overlay screens */
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;background:rgba(0,0,0,0.6);z-index:20;}
 .hidden{display:none;}
+
+/* Neon title */
 h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2s infinite alternate;text-align:center;}
-@keyframes neonTitle{0%{color:#0ff;text-shadow:0 0 15px #0ff;}50%{color:#f0f;text-shadow:0 0 15px #f0f;}100%{color:#0f0;text-shadow:0 0 15px #0f0;}}
-.btn{padding:12px 30px;font-size:18px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;color:black;}
-.easy{background:#00ff7f;} .medium{background:#ffd700;} .hard{background:#ff4040;}
+@keyframes neonTitle{
+  0%{color:#0ff;text-shadow:0 0 15px #0ff;}
+  50%{color:#f0f;text-shadow:0 0 15px #f0f;}
+  100%{color:#0f0;text-shadow:0 0 15px #0f0;}
+}
+
+/* Buttons neon style */
+.btn{
+  padding:12px 30px;
+  font-size:18px;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  color:#000;
+  text-shadow:0 0 3px #fff,0 0 5px #fff;
+  transition:0.2s;
+}
+.btn:hover{
+  filter:brightness(1.3);
+  text-shadow:0 0 8px #fff,0 0 12px #fff;
+}
+.easy{background:#00ff7f;}
+.medium{background:#ffd700;}
+.hard{background:#ff4040;}
+
+/* Add symbols to defeat buttons */
+#defeat .btn:before{content:'⚡ '; font-size:18px;}
+
+/* canvas */
+canvas{display:block;margin:auto;background:transparent;}
 </style>
 </head>
 <body>
 
 <!-- Logo -->
-<div id="logo"><img src="https://i.ibb.co/8gkXtrB/logo.png" alt="Logo"></div>
+<div id="logo"><img src="logo.png" alt="Logo"></div>
 
 <!-- Top score -->
 <div id="topBar">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
@@ -47,8 +77,8 @@ h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2
 <!-- Defeat Screen -->
 <div id="defeat" class="screen hidden">
   <h1>Defeat</h1>
-  <button class="btn medium" onclick="restart()">Restart</button>
-  <button class="btn easy" onclick="goMenu()">Menu</button>
+  <button class="btn medium" onclick="restart()">⚡ Restart</button>
+  <button class="btn easy" onclick="goMenu()">⚡ Menu</button>
 </div>
 
 <script>
@@ -64,31 +94,24 @@ let score=0;
 let best=Number(localStorage.getItem("nbb_best")||0);
 document.getElementById("best").textContent=best;
 
-// Load session storage state
-if(sessionStorage.getItem("nbb_running")==="true"){
-  running=true;
-  score=Number(sessionStorage.getItem("nbb_score")||0);
-  document.getElementById("score").textContent=score;
-}
-
-// Paddle setup
 function initPaddle(){paddle={x:w/2-40,y:h-30,w:80,h:12,flash:0};}
-
-// Balls
 function spawnBall(){balls.push({x:Math.random()*(w-30)+15,y:-20,r:10,c:`hsl(${Math.random()*360},100%,60%)`});}
 
 // Start game
 function startGame(sp){
-  speed=sp;score=0;document.getElementById("score").textContent=0;
-  initPaddle();balls=[];running=true;
-  sessionStorage.setItem("nbb_running", "true");
-  sessionStorage.setItem("nbb_score", score);
+  speed=sp; score=0; document.getElementById("score").textContent=0;
+  initPaddle(); balls=[]; running=true;
   document.getElementById("menu").classList.add("hidden");
   document.getElementById("defeat").classList.add("hidden");
-  spawnBall();requestAnimationFrame(loop);
+
+  // Spawn spaced balls for easier gameplay
+  for(let i=0;i<5;i++){
+    balls.push({x:Math.random()*(w-30)+15, y:-i*70, r:10, c:`hsl(${Math.random()*360},100%,60%)`});
+  }
+
+  requestAnimationFrame(loop);
 }
 
-// Restart & Menu
 function restart(){startGame(speed);}
 function goMenu(){document.getElementById("menu").classList.remove("hidden");document.getElementById("defeat").classList.add("hidden");}
 
@@ -113,27 +136,26 @@ function loop(){
   // Balls
   for(let i=balls.length-1;i>=0;i--){
     let b=balls[i]; b.y+=speed;
-    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=b.c; ctx.shadowBlur=15; ctx.shadowColor=b.c; ctx.fill(); ctx.shadowBlur=0;
 
-    // Collision
-    if(b.y+b.r>paddle.y && b.x>paddle.x && b.x<paddle.x+paddle.w){
-      balls.splice(i,1); score+=10;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fillStyle=b.c; ctx.shadowBlur=15; ctx.shadowColor=b.c; ctx.fill(); ctx.shadowBlur=0;
+
+    // collision with paddle
+    if(b.y+b.r>=paddle.y && b.y-b.r<=paddle.y+block.h && b.x>=paddle.x && b.x<=paddle.x+paddle.w){
+      balls.splice(i,1); score+=10; paddle.flash=5;
       document.getElementById("score").textContent=score;
-      paddle.flash=5; sessionStorage.setItem("nbb_score", score);
       spawnBall(); continue;
     }
 
-    // Miss
     if(b.y-b.r>h){gameOver(); return;}
   }
 
-  if(balls.length<3)spawnBall();
+  if(balls.length<3) spawnBall();
   requestAnimationFrame(loop);
 }
 
-// End game
 function gameOver(){
-  running=false; sessionStorage.setItem("nbb_running","false");
+  running=false;
   if(score>best){best=score;localStorage.setItem("nbb_best",best);document.getElementById("best").textContent=best;}
   document.getElementById("defeat").classList.remove("hidden");
 }
