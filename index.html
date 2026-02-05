@@ -3,122 +3,132 @@
 <head>
 <title>Neon Ball Breaker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-html,body{
- margin:0; padding:0; overflow:hidden;
- background:black; font-family:Arial;
-}
-canvas{display:none}
 
-/* MENU */
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Poppins:wght@500&display=swap');
+
+html,body{
+ margin:0;
+ padding:0;
+ overflow:hidden;
+ background:#000;
+ font-family:'Poppins',sans-serif;
+}
+
+/* ---------- MENU ---------- */
 #menu{
- position:absolute;
- width:100%; height:100%;
+ position:fixed;
+ inset:0;
  display:flex;
  flex-direction:column;
  justify-content:center;
  align-items:center;
- background:black;
- overflow:hidden;
-}
-.menu-bg span{
- position:absolute;
- width:4px; height:4px;
- background:#0ff;
- animation: move 6s linear infinite;
-}
-@keyframes move{
- from{transform:translateY(-100vh)}
- to{transform:translateY(100vh)}
+ background:radial-gradient(circle at top,#020024,#000);
+ z-index:10;
 }
 
-/* TITLE */
+/* title */
 #title{
- font-size:42px;
+ font-family:'Orbitron',sans-serif;
+ font-size:clamp(28px,6vw,56px);
  margin-bottom:30px;
- animation: neon 3s infinite;
-}
-@keyframes neon{
- 0%{color:#0ff;text-shadow:0 0 20px #0ff}
- 33%{color:#f0f;text-shadow:0 0 20px #f0f}
- 66%{color:#0f0;text-shadow:0 0 20px #0f0}
- 100%{color:#0ff;text-shadow:0 0 20px #0ff}
+ text-align:center;
+ animation:neonTitle 4s infinite linear;
 }
 
-/* BUTTONS */
-button{
- padding:15px 40px;
- margin:10px;
- font-size:22px;
- border:none;
- border-radius:10px;
- cursor:pointer;
- box-shadow:0 0 20px;
+@keyframes neonTitle{
+ 0%{color:#00ffff;text-shadow:0 0 15px #00ffff}
+ 33%{color:#ff00ff;text-shadow:0 0 15px #ff00ff}
+ 66%{color:#00ff88;text-shadow:0 0 15px #00ff88}
+ 100%{color:#00ffff;text-shadow:0 0 15px #00ffff}
 }
-#easy{background:#00ff88;box-shadow:0 0 20px #00ff88}
-#medium{background:#ffee00;box-shadow:0 0 20px #ffee00}
-#hard{background:#ff0033;box-shadow:0 0 20px #ff0033}
 
-/* UI */
-#ui,#best{
- position:absolute;
- top:10px;
- color:white;
- font-size:16px;
- display:none;
-}
-#ui{left:10px}
-#best{right:10px}
-
-/* LOGO */
-#logo{
- position:absolute;
- top:10px; left:10px;
- width:50px; height:50px;
+/* logo */
+#logoBox{
+ width:70px;
+ height:70px;
  border:2px dashed #0ff;
+ margin-bottom:20px;
  display:flex;
  justify-content:center;
  align-items:center;
  color:#0ff;
- font-size:10px;
- z-index:10;
+ font-size:11px;
 }
 
-/* DEFEAT */
+/* buttons */
+.menuBtn{
+ width:220px;
+ max-width:80vw;
+ padding:14px;
+ margin:10px;
+ font-size:18px;
+ border:none;
+ border-radius:12px;
+ cursor:pointer;
+ font-weight:600;
+}
+
+#easy{background:#00ff88;box-shadow:0 0 20px #00ff88}
+#medium{background:#ffee00;box-shadow:0 0 20px #ffee00}
+#hard{background:#ff0033;box-shadow:0 0 20px #ff0033;color:#fff}
+
+/* ---------- UI ---------- */
+#ui,#best{
+ position:fixed;
+ top:10px;
+ font-size:14px;
+ color:white;
+ display:none;
+ z-index:5;
+}
+#ui{left:10px}
+#best{right:10px}
+
+/* ---------- CANVAS ---------- */
+canvas{
+ display:none;
+}
+
+/* ---------- DEFEAT ---------- */
 #defeat{
- position:absolute;
- width:100%; height:100%;
+ position:fixed;
+ inset:0;
  display:none;
  justify-content:center;
  align-items:center;
- background:black;
+ font-family:'Orbitron',sans-serif;
+ font-size:clamp(30px,6vw,60px);
  color:red;
- font-size:40px;
+ background:black;
+ z-index:20;
 }
 </style>
 </head>
 <body>
 
-<div id="logo">LOGO</div>
-
+<!-- MENU -->
 <div id="menu">
- <div class="menu-bg"></div>
+ <div id="logoBox">LOGO</div>
  <div id="title">NEON BALL BREAKER</div>
- <button id="easy">Easy</button>
- <button id="medium">Medium</button>
- <button id="hard">Hard</button>
+ <button class="menuBtn" id="easy">EASY</button>
+ <button class="menuBtn" id="medium">MEDIUM</button>
+ <button class="menuBtn" id="hard">HARD</button>
 </div>
 
-<div id="defeat">DEFEAT</div>
-
+<!-- UI -->
 <div id="ui">Score: <span id="score">0</span></div>
 <div id="best">Best: <span id="bestScore">0</span></div>
+
+<!-- DEFEAT -->
+<div id="defeat">DEFEAT</div>
 
 <canvas id="game"></canvas>
 
 <script>
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
+
 const menu=document.getElementById("menu");
 const defeat=document.getElementById("defeat");
 const ui=document.getElementById("ui");
@@ -126,101 +136,155 @@ const bestDiv=document.getElementById("best");
 const scoreSpan=document.getElementById("score");
 const bestSpan=document.getElementById("bestScore");
 
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
-resize();addEventListener("resize",resize);
-
-// animated bg dots
-for(let i=0;i<80;i++){
- let s=document.createElement("span");
- s.style.left=Math.random()*100+"vw";
- s.style.animationDuration=3+Math.random()*5+"s";
- menu.querySelector(".menu-bg").appendChild(s);
+function resize(){
+ canvas.width=window.innerWidth;
+ canvas.height=window.innerHeight;
 }
+resize();
+window.addEventListener("resize",resize);
 
-let best=localStorage.getItem("BEST_SCORE")||0;
-bestSpan.innerText=best;
+// -------- GAME STATE --------
+let paddle,balls,score,settings;
+let running=false;
 
-let paddle,balls,particles,settings,score,gameOver=false;
+let best=localStorage.getItem("NEON_BEST")||0;
+bestSpan.textContent=best;
 
-function startGame(diff){
+// -------- START GAME --------
+function startGame(mode){
  settings={
-  easy:{speed:2.5,gap:90},
-  medium:{speed:4,gap:65},
-  hard:{speed:5.5,gap:45}
- }[diff];
+  easy:{speed:2.3,gap:90},
+  medium:{speed:3.8,gap:65},
+  hard:{speed:5.2,gap:45}
+ }[mode];
 
- score=0; scoreSpan.innerText=0;
- balls=[]; particles=[]; gameOver=false;
+ score=0;
+ scoreSpan.textContent=0;
+ balls=[];
+ running=true;
 
- paddle={w:canvas.width*0.25,h:14,x:canvas.width/2,y:canvas.height-40,color:"#0ff"};
+ paddle={
+  w:canvas.width*0.28,
+  h:14,
+  x:canvas.width/2,
+  y:canvas.height-50,
+  color:"#00ffff"
+ };
 
  menu.style.display="none";
+ defeat.style.display="none";
  canvas.style.display="block";
  ui.style.display="block";
  bestDiv.style.display="block";
+
  requestAnimationFrame(loop);
 }
 
+// -------- BUTTONS --------
 easy.onclick=()=>startGame("easy");
 medium.onclick=()=>startGame("medium");
 hard.onclick=()=>startGame("hard");
 
-// controls
+// -------- CONTROLS --------
 let left=false,right=false;
-addEventListener("keydown",e=>{
- if(e.key==="ArrowLeft")left=true;
- if(e.key==="ArrowRight")right=true;
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft") left=true;
+ if(e.key==="ArrowRight") right=true;
 });
-addEventListener("keyup",e=>{
- if(e.key==="ArrowLeft")left=false;
- if(e.key==="ArrowRight")right=false;
+document.addEventListener("keyup",e=>{
+ if(e.key==="ArrowLeft") left=false;
+ if(e.key==="ArrowRight") right=false;
 });
 
+// mobile
+let lastX=null;
+canvas.addEventListener("touchstart",e=>lastX=e.touches[0].clientX);
+canvas.addEventListener("touchmove",e=>{
+ if(!lastX) return;
+ let dx=e.touches[0].clientX-lastX;
+ paddle.x+=dx;
+ lastX=e.touches[0].clientX;
+});
+
+// -------- BALLS --------
 function spawnBall(){
  let x;
  do{x=Math.random()*canvas.width}
  while(balls.some(b=>Math.abs(b.x-x)<settings.gap));
- balls.push({x,y:-20,r:12,s:settings.speed+Math.random(),c:`hsl(${Math.random()*360},100%,60%)`});
+
+ balls.push({
+  x:x,
+  y:-20,
+  r:12,
+  s:settings.speed,
+  c:`hsl(${Math.random()*360},100%,60%)`
+ });
 }
 
+// -------- END GAME --------
 function endGame(){
- gameOver=true;
+ running=false;
  if(score>best){
   best=score;
-  localStorage.setItem("BEST_SCORE",best);
-  bestSpan.innerText=best;
+  localStorage.setItem("NEON_BEST",best);
+  bestSpan.textContent=best;
  }
  canvas.style.display="none";
  ui.style.display="none";
  bestDiv.style.display="none";
  defeat.style.display="flex";
- setTimeout(()=>{defeat.style.display="none";menu.style.display="flex"},2000);
+
+ setTimeout(()=>{
+  defeat.style.display="none";
+  menu.style.display="flex";
+ },2000);
 }
 
+// -------- LOOP (NO FREEZE) --------
 function loop(){
- if(gameOver)return;
- ctx.fillStyle="black";
- ctx.fillRect(0,0,canvas.width,canvas.height);
+ if(!running) return;
 
- if(left)paddle.x-=8;
- if(right)paddle.x+=8;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ // paddle move
+ if(left) paddle.x-=8;
+ if(right) paddle.x+=8;
  paddle.x=Math.max(paddle.w/2,Math.min(canvas.width-paddle.w/2,paddle.x));
 
  ctx.fillStyle=paddle.color;
  ctx.fillRect(paddle.x-paddle.w/2,paddle.y,paddle.w,paddle.h);
 
- balls.forEach((b,i)=>{
+ // balls
+ for(let i=balls.length-1;i>=0;i--){
+  let b=balls[i];
   b.y+=b.s;
-  ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-  ctx.fillStyle=b.c;ctx.fill();
-  if(b.y+b.r>paddle.y&&b.x>paddle.x-paddle.w/2&&b.x<paddle.x+paddle.w/2){
-   balls.splice(i,1);score+=10;scoreSpan.innerText=score;
-   paddle.color="#0f0";setTimeout(()=>paddle.color="#0ff",50);
-  }
-  if(b.y-b.r>canvas.height)endGame();
- });
 
- if(Math.random()<0.035)spawnBall();
+  ctx.beginPath();
+  ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  ctx.fillStyle=b.c;
+  ctx.fill();
+
+  if(
+   b.y+b.r>=paddle.y &&
+   b.x>paddle.x-paddle.w/2 &&
+   b.x<paddle.x+paddle.w/2
+  ){
+   balls.splice(i,1);
+   score+=10;
+   scoreSpan.textContent=score;
+   paddle.color="#00ff88";
+   setTimeout(()=>paddle.color="#00ffff",60);
+   continue;
+  }
+
+  if(b.y-b.r>canvas.height){
+   endGame();
+   return;
+  }
+ }
+
+ if(Math.random()<0.035) spawnBall();
+
  requestAnimationFrame(loop);
 }
 </script>
