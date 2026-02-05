@@ -1,102 +1,207 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>2D Car Game</title>
-  <style>
-    body {
-      margin: 0;
-      background: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    canvas {
-      background: #555;
-      border: 3px solid white;
-    }
-  </style>
+<title>Ball Breaker Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:black;
+  font-family:Arial;
+}
+#ui{
+  position:absolute;
+  top:10px;
+  left:10px;
+  color:white;
+  font-size:16px;
+}
+#best{
+  position:absolute;
+  top:10px;
+  right:10px;
+  color:#0f0;
+}
+#restart{
+  display:none;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  padding:12px 20px;
+  font-size:18px;
+  background:#ff4444;
+  color:white;
+  border:none;
+  border-radius:6px;
+}
+canvas{display:block;}
+</style>
 </head>
 <body>
 
-<canvas id="game" width="300" height="500"></canvas>
+<div id="ui">Score: <span id="score">0</span></div>
+<div id="best">Best: <span id="bestScore">0</span></div>
+<button id="restart">Restart</button>
+<canvas id="game"></canvas>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-// car
-let car = {
-  x: 130,
-  y: 400,
-  w: 40,
-  h: 70
+function resize(){
+ canvas.width=window.innerWidth;
+ canvas.height=window.innerHeight;
+}
+resize(); window.addEventListener("resize",resize);
+
+// paddle
+let paddle={
+ w:canvas.width*0.25,
+ h:15,
+ x:canvas.width/2,
+ y:canvas.height-40,
+ speed:8
 };
 
-// obstacle
-let obs = {
-  x: Math.random() * 260,
-  y: -100,
-  w: 40,
-  h: 70,
-  speed: 4
-};
+// ball
+let balls=[];
+let particles=[];
+let score=0;
+let best=localStorage.getItem("best")||0;
+document.getElementById("bestScore").innerText=best;
+
+let gameOver=false;
 
 // controls
-let left = false;
-let right = false;
-
-document.addEventListener("keydown", e => {
-  if (e.key === "ArrowLeft") left = true;
-  if (e.key === "ArrowRight") right = true;
+let left=false,right=false;
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft")left=true;
+ if(e.key==="ArrowRight")right=true;
+});
+document.addEventListener("keyup",e=>{
+ if(e.key==="ArrowLeft")left=false;
+ if(e.key==="ArrowRight")right=false;
 });
 
-document.addEventListener("keyup", e => {
-  if (e.key === "ArrowLeft") left = false;
-  if (e.key === "ArrowRight") right = false;
+// mobile touch
+let touchX=null;
+canvas.addEventListener("touchstart",e=>{
+ touchX=e.touches[0].clientX;
+});
+canvas.addEventListener("touchmove",e=>{
+ let dx=e.touches[0].clientX-touchX;
+ paddle.x+=dx;
+ touchX=e.touches[0].clientX;
 });
 
-function drawCar() {
-  ctx.fillStyle = "red";
-  ctx.fillRect(car.x, car.y, car.w, car.h);
+// spawn ball
+function spawnBall(){
+ balls.push({
+  x:Math.random()*canvas.width,
+  y:-20,
+  r:12+Math.random()*8,
+  speed:3+Math.random()*3
+ });
 }
 
-function drawObs() {
-  ctx.fillStyle = "yellow";
-  ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+// explosion
+function explode(x,y){
+ for(let i=0;i<20;i++){
+  particles.push({
+   x,y,
+   vx:(Math.random()-0.5)*6,
+   vy:(Math.random()-0.5)*6,
+   life:30
+  });
+ }
 }
 
-function update() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+// background animation
+let stars=[];
+for(let i=0;i<80;i++){
+ stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,s:1+Math.random()*2});
+}
 
-  if (left && car.x > 0) car.x -= 5;
-  if (right && car.x < canvas.width - car.w) car.x += 5;
+function drawBg(){
+ ctx.fillStyle="black";
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle="white";
+ stars.forEach(s=>{
+  ctx.fillRect(s.x,s.y,s.s,s.s);
+  s.y+=s.s;
+  if(s.y>canvas.height)s.y=0;
+ });
+}
 
-  obs.y += obs.speed;
+// loop
+function loop(){
+ if(gameOver)return;
+ drawBg();
 
-  if (obs.y > canvas.height) {
-    obs.y = -100;
-    obs.x = Math.random() * 260;
-  }
+ // paddle move
+ if(left)paddle.x-=paddle.speed;
+ if(right)paddle.x+=paddle.speed;
+ paddle.x=Math.max(paddle.w/2,Math.min(canvas.width-paddle.w/2,paddle.x));
+
+ // draw paddle
+ ctx.fillStyle="#00ffff";
+ ctx.fillRect(paddle.x-paddle.w/2,paddle.y,paddle.w,paddle.h);
+
+ // balls
+ balls.forEach((b,i)=>{
+  b.y+=b.speed;
+  ctx.beginPath();
+  ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  ctx.fillStyle="orange";
+  ctx.fill();
 
   // collision
-  if (
-    car.x < obs.x + obs.w &&
-    car.x + car.w > obs.x &&
-    car.y < obs.y + obs.h &&
-    car.y + car.h > obs.y
-  ) {
-    alert("Game Over!");
-    location.reload();
+  if(b.y+b.r>paddle.y &&
+     b.x>paddle.x-paddle.w/2 &&
+     b.x<paddle.x+paddle.w/2){
+      explode(b.x,b.y);
+      balls.splice(i,1);
+      score+=10;
+      document.getElementById("score").innerText=score;
   }
 
-  drawCar();
-  drawObs();
-  requestAnimationFrame(update);
+  // miss
+  if(b.y-b.r>canvas.height){
+   endGame();
+  }
+ });
+
+ // particles
+ particles.forEach((p,i)=>{
+  ctx.fillStyle="yellow";
+  ctx.fillRect(p.x,p.y,4,4);
+  p.x+=p.vx;
+  p.y+=p.vy;
+  p.life--;
+  if(p.life<=0)particles.splice(i,1);
+ });
+
+ if(Math.random()<0.03)spawnBall();
+ requestAnimationFrame(loop);
 }
 
-update();
-</script>
+function endGame(){
+ gameOver=true;
+ if(score>best){
+  best=score;
+  localStorage.setItem("best",best);
+ }
+ document.getElementById("restart").style.display="block";
+}
 
+document.getElementById("restart").onclick=()=>{
+ location.reload();
+};
+
+loop();
+</script>
 </body>
 </html>
