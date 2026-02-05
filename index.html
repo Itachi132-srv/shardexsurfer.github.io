@@ -8,12 +8,15 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
 body{background:black;overflow:hidden;color:white;touch-action:none;}
 canvas{display:block;margin:auto;background:transparent;}
-#logo{position:fixed;top:10px;right:10px;width:50px;height:50px;border:2px solid #0ff;display:flex;align-items:center;justify-content:center;color:#0ff;font-size:10px;z-index:10;} 
+
+/* Logo */
+#logo{position:fixed;top:10px;right:10px;width:60px;height:60px;z-index:10;}
+#logo img{width:100%;height:100%;object-fit:contain;}
 
 /* Top score bar */
 #topBar{position:fixed;top:10px;left:50%;transform:translateX(-50%);font-size:18px;font-weight:bold;z-index:10;}
 
-/* Menu */
+/* Menu & Defeat */
 #menu,#defeat{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;background:rgba(0,0,0,.6);z-index:20;}
 .hidden{display:none;}
 h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2s infinite alternate;text-align:center;}
@@ -24,9 +27,10 @@ h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2
 </head>
 <body>
 
-<div id="logo.png">LOGO</div>
-<div id="topBar">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
+<!-- Logo image -->
+<div id="logo"><img src="logo.png" alt="Logo"></div>
 
+<div id="topBar">Score: <span id="score">0</span> | Best: <span id="best">0</span></div>
 <canvas id="game"></canvas>
 
 <!-- Menu -->
@@ -48,76 +52,89 @@ h1{font-size:40px;font-weight:900;text-transform:uppercase;animation:neonTitle 2
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 let w,h;
-function resize(){w=canvas.width=innerWidth;h=canvas.height=innerHeight;}
+function resize(){w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight;}
 resize();window.addEventListener("resize",resize);
 
 // Game state
 let paddle,balls,speed,running=false;
 let score=0;
-let best=localStorage.getItem("nbb_best")||0;
-best=Number(best);document.getElementById("best").textContent=best;
+let best=Number(localStorage.getItem("nbb_best")||0);
+document.getElementById("best").textContent=best;
 
-// Start game
-function startGame(sp){
-  speed=sp;score=0;document.getElementById("score").textContent=0;
-  paddle={x:w/2-40,y:h-30,w:80,h:12,flash:0};
-  balls=[];
+// Load session storage state if exists
+if(sessionStorage.getItem("nbb_running")==="true"){
   running=true;
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("defeat").classList.add("hidden");
-  spawnBall();requestAnimationFrame(loop);
+  score=Number(sessionStorage.getItem("nbb_score")||0);
+  document.getElementById("score").textContent=score;
 }
 
-// Buttons
-function restart(){startGame(speed);}
-function goMenu(){document.getElementById("menu").classList.remove("hidden");document.getElementById("defeat").classList.add("hidden");}
-
-// Controls
-window.addEventListener("mousemove",e=>{
-  if(running){paddle.x=e.clientX-paddle.w/2;paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
-});
-window.addEventListener("touchmove",e=>{
-  if(running){paddle.x=e.touches[0].clientX-paddle.w/2;paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
-},{passive:true});
+// Paddle setup
+function initPaddle(){paddle={x:w/2-40,y:h-30,w:80,h:12,flash:0};}
 
 // Balls
 function spawnBall(){
   balls.push({x:Math.random()*(w-30)+15,y:-20,r:10,c:`hsl(${Math.random()*360},100%,60%)`});
 }
 
-// End game
-function gameOver(){
-  running=false;
-  if(score>best){best=score;localStorage.setItem("nbb_best",best);document.getElementById("best").textContent=best;}
-  document.getElementById("defeat").classList.remove("hidden");
+// Start game
+function startGame(sp){
+  speed=sp;score=0;document.getElementById("score").textContent=0;
+  initPaddle();balls=[];running=true;
+  sessionStorage.setItem("nbb_running", "true");
+  sessionStorage.setItem("nbb_score", score);
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("defeat").classList.add("hidden");
+  spawnBall();requestAnimationFrame(loop);
 }
 
-// Loop
+// Restart & Menu
+function restart(){startGame(speed);}
+function goMenu(){document.getElementById("menu").classList.remove("hidden");document.getElementById("defeat").classList.add("hidden");}
+
+// Controls
+window.addEventListener("mousemove",e=>{
+  if(running){paddle.x=e.clientX-paddle.w/2; paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
+});
+window.addEventListener("touchmove",e=>{
+  if(running){paddle.x=e.touches[0].clientX-paddle.w/2; paddle.x=Math.max(0,Math.min(w-paddle.w,paddle.x));}
+},{passive:true});
+
+// Game loop
 function loop(){
   if(!running) return;
   ctx.clearRect(0,0,w,h);
-  
+
   // Paddle
   ctx.fillStyle=paddle.flash>0?"#00ff00":"#0ff";
   ctx.fillRect(paddle.x,paddle.y,paddle.w,paddle.h);
   if(paddle.flash>0)paddle.flash--;
-  
+
   // Balls
   for(let i=balls.length-1;i>=0;i--){
-    let b=balls[i];b.y+=speed;
-    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.c;ctx.shadowBlur=15;ctx.shadowColor=b.c;ctx.fill();ctx.shadowBlur=0;
-    
+    let b=balls[i]; b.y+=speed;
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=b.c; ctx.shadowBlur=15; ctx.shadowColor=b.c; ctx.fill(); ctx.shadowBlur=0;
+
     // Collision
     if(b.y+b.r>paddle.y && b.x>paddle.x && b.x<paddle.x+paddle.w){
-      balls.splice(i,1);score+=10;document.getElementById("score").textContent=score;paddle.flash=5;spawnBall();continue;
+      balls.splice(i,1); score+=10;
+      document.getElementById("score").textContent=score;
+      paddle.flash=5; sessionStorage.setItem("nbb_score", score);
+      spawnBall(); continue;
     }
-    
+
     // Miss
-    if(b.y-b.r>h){gameOver();return;}
+    if(b.y-b.r>h){gameOver(); return;}
   }
-  
+
   if(balls.length<3)spawnBall();
   requestAnimationFrame(loop);
+}
+
+// End game
+function gameOver(){
+  running=false; sessionStorage.setItem("nbb_running","false");
+  if(score>best){best=score;localStorage.setItem("nbb_best",best);document.getElementById("best").textContent=best;}
+  document.getElementById("defeat").classList.remove("hidden");
 }
 </script>
 </body>
